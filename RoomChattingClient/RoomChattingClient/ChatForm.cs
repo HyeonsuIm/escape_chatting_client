@@ -7,6 +7,7 @@ using System.Media;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using WMPLib;
 
 namespace RoomChattingClient
 {
@@ -21,6 +22,9 @@ namespace RoomChattingClient
         bool isInternetConnected = true;
         FileStream bugFileStream;
         public StreamWriter bugPsWriter;
+        Stream soundStream;
+        WindowsMediaPlayer player = new WindowsMediaPlayer();
+        bool isMp3;
 
         public ChatForm()
         {
@@ -70,8 +74,23 @@ namespace RoomChattingClient
             }
             psReader.Close();
             fileStream.Close();
+            
+            if( true == File.Exists("notice.mp3") )
+            {
+                isMp3 = true;
+                player.URL = @"notice.mp3";
+            }
+            else if( true == File.Exists("notice.wav") )
+            {
+                isMp3 = false;
+                soundStream = new FileStream("notice.wav", FileMode.Open, FileAccess.Read);
+            }
+            else
+            {
+                MessageBox.Show("소리파일을 찾을 수 없습니다.( notice.wav )", "오류");
+                Application.Exit();
+            }
 
-             
             tcpIpClient = new TCPIPClient(ip, name, this);
             tcpIpClient.OnReceived += new TCPIPClient.MessageDisplayHandler(displayRecvData);
             tcpIpClient.OnErrorMessage += new TCPIPClient.ErrorMessageHandler(errorMessage);
@@ -162,8 +181,15 @@ namespace RoomChattingClient
                 displayMessage("\r\n" + msg, Color.Yellow);
                 if (sound)
                 {
-                    SoundPlayer simpleSound = new SoundPlayer(Properties.Resources.Alarm);
-                    simpleSound.Play();
+                    if( isMp3 )
+                    {
+                        player.controls.play();
+                    }
+                    else{
+                        SoundPlayer simpleSound = new SoundPlayer(soundStream);
+                        simpleSound.Play();
+                    }
+                    
                     
                 }
             }
