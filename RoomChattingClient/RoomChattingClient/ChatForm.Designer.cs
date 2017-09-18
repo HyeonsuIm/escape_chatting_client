@@ -78,6 +78,8 @@
             this.Controls.Add(this.inputTextBox);
             this.Controls.Add(this.chatSendButton);
             this.Controls.Add(this.showTextBox);
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "ChatForm";
             this.Text = "Chat";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ChatForm_FormClosing);

@@ -32,6 +32,8 @@ namespace RoomChattingClient
             InitializeComponent();
             showTextBox.SelectionStart = showTextBox.Text.Length;
             showTextBox.ScrollToCaret();
+            this.TopMost = true;
+            this.WindowState = FormWindowState.Maximized;
         }
         private bool isAlreadySet()
         {
