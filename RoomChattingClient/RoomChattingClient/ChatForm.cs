@@ -7,6 +7,7 @@ using System.Media;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using System.Hooks;
 using WMPLib;
 
 namespace RoomChattingClient
@@ -22,9 +23,7 @@ namespace RoomChattingClient
         bool isInternetConnected = true;
         FileStream bugFileStream;
         public StreamWriter bugPsWriter;
-        Stream soundStream;
-        WindowsMediaPlayer player = new WindowsMediaPlayer();
-        bool isMp3;
+        KeyboardHooker.HookedKeyboardUserEventHandler HookedKeyboardNofity;
 
         public ChatForm()
         {
@@ -32,7 +31,6 @@ namespace RoomChattingClient
             InitializeComponent();
             showTextBox.SelectionStart = showTextBox.Text.Length;
             showTextBox.ScrollToCaret();
-            this.TopMost = true;
             this.WindowState = FormWindowState.Maximized;
         }
         private bool isAlreadySet()
@@ -44,8 +42,30 @@ namespace RoomChattingClient
                 return false;
         }
 
+        private long Form1_HookedKeyboardNofity(bool bIsKeyDown, bool bAlt, bool bCtrl, bool bShift, bool bWindowKey, int vkCode)
+        {
+            long lResult = 0;
+            //  입력을 막고 싶은 키가 있을 경우, 해당 키가 입력되었을 때
+
+            //  0이 아닌 값을 리턴하면 다른 프로세스가 해당 키보드 메시지를 받지 못하게 된다.
+
+            //  지금의 예처럼 코딩하면 Tab,Delete,Esc 키의 입력을 막게 된다.
+
+            if ((vkCode == (int)Keys.Tab) ||
+                (vkCode == (int)Keys.F4) ||
+                (vkCode == (int)Keys.Escape) ||
+                (vkCode == (int)Keys.LWin) ||
+                (vkCode == (int)Keys.RWin))
+            {
+                lResult = -1;
+            }
+            return lResult;
+        }
+
         private void MainForm_Loaded(object sender, EventArgs e)
         {
+            this.HookedKeyboardNofity += new KeyboardHooker.HookedKeyboardUserEventHandler(Form1_HookedKeyboardNofity);
+            
             if (!isAlreadySet())
             {
                 Form roomNameInputForm = new RoomNameInputForm(this);
@@ -74,23 +94,20 @@ namespace RoomChattingClient
                 Application.Exit();
                 return;
             }
+
+            this.TopMost = true;
             psReader.Close();
             fileStream.Close();
             
             if( true == File.Exists("notice.mp3") )
             {
-                isMp3 = true;
-                player.URL = @"notice.mp3";
-            }
-            else if( true == File.Exists("notice.wav") )
-            {
-                isMp3 = false;
-                soundStream = new FileStream("notice.wav", FileMode.Open, FileAccess.Read);
+                
             }
             else
             {
-                MessageBox.Show("소리파일을 찾을 수 없습니다.( notice.wav )", "오류");
+                MessageBox.Show("소리파일을 찾을 수 없습니다.( notice.mp3 )", "오류");
                 Application.Exit();
+                return;
             }
 
             tcpIpClient = new TCPIPClient(ip, name, this);
@@ -104,6 +121,7 @@ namespace RoomChattingClient
                 Application.Exit();
             }
             inputTextBox.Select();
+            KeyboardHooker.Hook(HookedKeyboardNofity);
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -183,16 +201,8 @@ namespace RoomChattingClient
                 displayMessage("\r\n" + msg, Color.Yellow);
                 if (sound)
                 {
-                    if( isMp3 )
-                    {
-                        player.controls.play();
-                    }
-                    else{
-                        SoundPlayer simpleSound = new SoundPlayer(soundStream);
-                        simpleSound.Play();
-                    }
-                    
-                    
+                    WindowsMediaPlayer player = new WindowsMediaPlayer();
+                    player.URL = @"notice.mp3";
                 }
             }
         }
@@ -271,6 +281,7 @@ namespace RoomChattingClient
             {
                 tcpIpClient.closeAllCommunication();
             }
+            KeyboardHooker.UnHook();
         }
 
         private int checkMacro(string text)
